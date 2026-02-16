@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "181764546344",
+    "project_id": "tapeshare-559c7",
+    "storage_bucket": "tapeshare-559c7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:181764546344:android:423a3de6fa09e7c3e3fa1d",
+        "android_client_info": {
+          "package_name": "com.example.tapeshare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBE-EPLYjAg_P7ER3WMIqO4RKwke9i4hEE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
