@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:tapeshare/core/page_transitions.dart';
 import 'screen_share.dart';
 
 class RecordingScreen extends StatefulWidget {
@@ -14,16 +16,20 @@ class RecordingScreen extends StatefulWidget {
 }
 
 class _RecordingScreenState extends State<RecordingScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  String? _savedFilePath;
   int _secondsElapsed = 0;
   Timer? _timer;
 
-  // Animation for the pulsing glow effect while recording
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  late AnimationController _waveController;
+
+  // Complementary colors - Mint/Emerald theme
+  static const _mint = Color(0xFF5EEAD4);
+  static const _emerald = Color(0xFF34D399);
+  static const _coral = Color(0xFFFF7F7F);
 
   @override
   void initState() {
@@ -37,10 +43,14 @@ class _RecordingScreenState extends State<RecordingScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _pulseController.stop(); // only animate while recording
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+
+    _pulseController.stop();
   }
 
-  // Format seconds into mm:ss display
   String get _timeDisplay {
     final mins = (_secondsElapsed ~/ 60).toString().padLeft(2, '0');
     final secs = (_secondsElapsed % 60).toString().padLeft(2, '0');
@@ -48,27 +58,26 @@ class _RecordingScreenState extends State<RecordingScreen>
   }
 
   Future<void> _startRecording() async {
-    // Ask for microphone permission
     final status = await Permission.microphone.request();
+
+    if (!mounted) return;
+
     if (status != PermissionStatus.granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Microphone permission is required!'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Microphone permission is required!'),
+          backgroundColor: _coral,
         ),
       );
       return;
     }
 
-    // Get a path to save the file
     final dir = await getTemporaryDirectory();
     final path =
         '${dir.path}/tape_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
-    // Start recording
     await _recorder.start(const RecordConfig(), path: path);
 
-    // Start the timer
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _secondsElapsed++);
     });
@@ -85,23 +94,19 @@ class _RecordingScreenState extends State<RecordingScreen>
 
     setState(() {
       _isRecording = false;
-      _savedFilePath = path;
       _secondsElapsed = 0;
     });
 
-    // Go to share screen with the saved file
     if (path != null && mounted) {
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ShareScreen(
-              filePath: path,
-              username: widget.username,
-            ),
+      Navigator.push(
+        context,
+        SmoothPageRoute(
+          page: ShareScreen(
+            filePath: path,
+            username: widget.username,
           ),
-        );
-}
+        ),
+      );
     }
   }
 
@@ -109,6 +114,7 @@ class _RecordingScreenState extends State<RecordingScreen>
   void dispose() {
     _recorder.dispose();
     _pulseController.dispose();
+    _waveController.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -116,125 +122,268 @@ class _RecordingScreenState extends State<RecordingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'New Tape',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-
-            const Spacer(),
-
-          // ── STATUS TEXT ───────────────────────────────────
-          Text(
-            _isRecording ? 'Recording...' : 'Hold to Record',
-            style: TextStyle(
-              color: _isRecording ? Colors.orange : Colors.grey,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0D1A1A),
+              Color(0xFF0A1515),
+              Color(0xFF0D1A18),
+            ],
           ),
-
-          const SizedBox(height: 16),
-
-          // ── TIMER ─────────────────────────────────────────
-          Text(
-            _timeDisplay,
-            style: TextStyle(
-              color: _isRecording ? Colors.white : Colors.grey[700],
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-
-          const Spacer(),
-
-          // ── WAVEFORM BARS (decorative) ────────────────────
-          if (_isRecording)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(20, (i) {
-                  return AnimatedContainer(
-                    duration: Duration(milliseconds: 200 + (i * 30)),
-                    width: 4,
-                    height: _isRecording ? (10 + (i % 5) * 12).toDouble() : 4,
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  );
-                }),
-              ),
-            ),
-
-          const SizedBox(height: 40),
-
-          // ── HOLD TO RECORD BUTTON ─────────────────────────
-          GestureDetector(
-            onLongPressStart: (_) => _startRecording(),
-            onLongPressEnd: (_) => _stopRecording(),
-            child: AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _isRecording ? _pulseAnimation.value : 1.0,
-                  child: Container(
-                    width: 140,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _isRecording
-                          ? Colors.red
-                          : Colors.orange,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isRecording ? Colors.red : Colors.orange)
-                              .withOpacity(0.5),
-                          blurRadius: _isRecording ? 40 : 20,
-                          spreadRadius: _isRecording ? 10 : 4,
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // Floating decorations
+              ..._buildDecorations(),
+              
+              Column(
+                children: [
+                  // App bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Text(
+                          'New Tape',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      _isRecording ? Icons.stop : Icons.mic,
-                      color: Colors.white,
-                      size: 64,
+                  ),
+
+                  const Spacer(),
+
+                  // Status text with gradient
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: _isRecording 
+                          ? [_coral, const Color(0xFFFF6B6B)]
+                          : [_mint, _emerald],
+                    ).createShader(bounds),
+                    child: Text(
+                      _isRecording ? 'Recording...' : 'Hold to Record',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
+
+                  const SizedBox(height: 20),
+
+                  // Time display
+                  Text(
+                    _timeDisplay,
+                    style: TextStyle(
+                      color: _isRecording ? Colors.white : Colors.grey[600],
+                      fontSize: 56,
+                      fontWeight: FontWeight.w300,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      letterSpacing: 4,
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // Waveform visualization
+                  if (_isRecording)
+                    AnimatedBuilder(
+                      animation: _waveController,
+                      builder: (context, child) {
+                        return SizedBox(
+                          height: 80,
+                          child: CustomPaint(
+                            size: Size(MediaQuery.of(context).size.width - 80, 80),
+                            painter: WaveformVisualizerPainter(
+                              progress: _waveController.value,
+                              color1: _mint,
+                              color2: _emerald,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                  const SizedBox(height: 40),
+
+                  // Record button
+                  GestureDetector(
+                    onLongPressStart: (_) => _startRecording(),
+                    onLongPressEnd: (_) => _stopRecording(),
+                    child: Hero(
+                      tag: 'record_button',
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _isRecording ? _pulseAnimation.value : 1.0,
+                            child: Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: _isRecording 
+                                      ? [_coral, const Color(0xFFFF5252)]
+                                      : [_mint, _emerald],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (_isRecording ? _coral : _mint)
+                                        .withValues(alpha: 0.5),
+                                    blurRadius: _isRecording ? 40 : 25,
+                                    spreadRadius: _isRecording ? 10 : 5,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  Text(
+                    _isRecording ? 'Release to stop' : 'Press and hold the button',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  ),
+
+                  const Spacer(),
+                ],
+              ),
+            ],
           ),
-
-          const SizedBox(height: 24),
-
-          Text(
-            _isRecording
-                ? 'Release to stop'
-                : 'Press and hold the button',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
-
-          const Spacer(),
-
-          ],
         ),
       ),
     );
   }
+
+  List<Widget> _buildDecorations() {
+    return [
+      // Top right glow
+      Positioned(
+        top: -60,
+        right: -60,
+        child: Container(
+          width: 200,
+          height: 200,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                _mint.withValues(alpha: 0.15),
+                _mint.withValues(alpha: 0.0),
+              ],
+            ),
+          ),
+        ),
+      ),
+      // Bottom left glow
+      Positioned(
+        bottom: -80,
+        left: -80,
+        child: Container(
+          width: 250,
+          height: 250,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                _emerald.withValues(alpha: 0.12),
+                _emerald.withValues(alpha: 0.0),
+              ],
+            ),
+          ),
+        ),
+      ),
+      // Center accent
+      if (_isRecording)
+        Positioned(
+          top: MediaQuery.of(context).size.height * 0.2,
+          left: -100,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  _coral.withValues(alpha: 0.1),
+                  _coral.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+}
+
+// Waveform visualizer painter
+class WaveformVisualizerPainter extends CustomPainter {
+  final double progress;
+  final Color color1;
+  final Color color2;
+
+  WaveformVisualizerPainter({
+    required this.progress,
+    required this.color1,
+    required this.color2,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barCount = 30;
+    final barWidth = size.width / (barCount * 1.8);
+    final maxHeight = size.height * 0.9;
+
+    for (int i = 0; i < barCount; i++) {
+      final phase = (progress * 2 * math.pi) + (i * 0.25);
+      final heightFactor = 0.2 + 0.8 * ((math.sin(phase) + 1) / 2);
+      final barHeight = maxHeight * heightFactor;
+
+      final t = i / (barCount - 1);
+      final color = Color.lerp(color1, color2, t)!;
+
+      final paint = Paint()
+        ..color = color.withValues(alpha: 0.8)
+        ..style = PaintingStyle.fill;
+
+      final x = i * (barWidth * 1.8) + barWidth / 2;
+      final y = (size.height - barHeight) / 2;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        Radius.circular(barWidth / 2),
+      );
+
+      canvas.drawRRect(rect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(WaveformVisualizerPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'features/home/home_screen.dart';
+import 'features/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,13 +17,21 @@ void main() async {
   await Supabase.initialize(
     url: 'supabase_url',  // paste supa url here      
     anonKey: 'anon_key, // ← paste your anon key here
+
   );
 
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _showSplash = true;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +42,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: _showSplash
+          ? SplashScreen(
+              onComplete: () => setState(() => _showSplash = false),
+            )
+          : const HomeScreen(),
     );
   }
 }
