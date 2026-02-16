@@ -15,8 +15,9 @@ void main() async {
 
   // Supabase (for audio file storage)
   await Supabase.initialize(
-    url: 'https://mugkjfievdtigzgpbggm.supabase.co',        
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11Z2tqZmlldmR0aWd6Z3BiZ2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNTczNTksImV4cCI6MjA4NjczMzM1OX0.XE9t2msX-evkdVWXrTeNwbn6E7wV40jRUVadGfJbOW4', // ← paste your anon key here
+    url: 'supabase_url',  // paste supa url here      
+    anonKey: 'anon_key, // ← paste your anon key here
+
   );
 
   runApp(const MyApp());
