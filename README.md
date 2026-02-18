@@ -190,6 +190,8 @@ lib/
 The innovative winding mechanic uses polar coordinate mathematics:
 
 ```dart
+import 'dart:math' as math;
+
 // Calculate angle from center point
 final angle = atan2(dy, dx);
 
@@ -211,7 +213,7 @@ progress = (totalRotation / (4 * 2 * math.pi)).clamp(0.0, 1.0);
 
 **Collection:** `tapes`
 
-**Document Fields:**
+**Document Fields:** (JSON representation)
 ```javascript
 {
   id: String,              // Unique tape ID (UUID v4)
