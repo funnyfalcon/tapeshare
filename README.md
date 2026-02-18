@@ -232,7 +232,7 @@ Field descriptions:
 - `audioUrl` (String): Public URL to audio file
 - `sender` (String): Username of sender
 - `title` (String): Custom tape title
-- `color` (String): Color value as string
+- `color` (String): Color value as string (Flutter Color integer ARGB representation, e.g., "4294944000")
 - `createdAt` (Timestamp): Creation timestamp
 - `playCount` (Number): Number of times played
 
