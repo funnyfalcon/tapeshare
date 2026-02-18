@@ -193,16 +193,16 @@ The innovative winding mechanic uses polar coordinate mathematics:
 // Calculate angle from center point
 final angle = atan2(dy, dx);
 
-// Track rotation delta (handling π to -π wraparound)
+// Track rotation delta (handling pi to -pi wraparound)
 double delta = newAngle - currentAngle;
-if (delta > π) delta -= 2π;
-if (delta < -π) delta += 2π;
+if (delta > math.pi) delta -= 2 * math.pi;
+if (delta < -math.pi) delta += 2 * math.pi;
 
 // Accumulate clockwise rotation only
 if (delta > 0) totalRotation += delta;
 
 // Calculate progress (4 full rotations = 100%)
-progress = (totalRotation / (4 × 2π)).clamp(0.0, 1.0);
+progress = (totalRotation / (4 * 2 * math.pi)).clamp(0.0, 1.0);
 ```
 
 ## 🔧 Configuration
