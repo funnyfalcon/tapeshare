@@ -193,7 +193,8 @@ The innovative winding mechanic uses polar coordinate mathematics:
 import 'dart:math' as math;
 
 // Calculate angle from center point
-final angle = atan2(dy, dx);
+// dx, dy are the x and y distance from the center to the touch point
+final angle = math.atan2(dy, dx);
 
 // Track rotation delta (handling pi to -pi wraparound)
 double delta = newAngle - currentAngle;
@@ -213,18 +214,27 @@ progress = (totalRotation / (4 * 2 * math.pi)).clamp(0.0, 1.0);
 
 **Collection:** `tapes`
 
-**Document Fields:** (JSON representation)
-```javascript
+**Document Fields:**
+```json
 {
-  id: String,              // Unique tape ID (UUID v4)
-  audioUrl: String,        // Public URL to audio file
-  sender: String,          // Username of sender
-  title: String,           // Custom tape title
-  color: String,           // Color value as string
-  createdAt: Timestamp,    // Creation timestamp
-  playCount: Number        // Number of times played
+  "id": "uuid-string",
+  "audioUrl": "https://supabase-url/tapes/uuid.m4a",
+  "sender": "username",
+  "title": "Voice Tape",
+  "color": "4294944000",
+  "createdAt": "Timestamp",
+  "playCount": 0
 }
 ```
+
+Field descriptions:
+- `id` (String): Unique tape ID (UUID v4)
+- `audioUrl` (String): Public URL to audio file
+- `sender` (String): Username of sender
+- `title` (String): Custom tape title
+- `color` (String): Color value as string
+- `createdAt` (Timestamp): Creation timestamp
+- `playCount` (Number): Number of times played
 
 ### Supabase Storage
 
